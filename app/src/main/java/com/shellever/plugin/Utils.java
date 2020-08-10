@@ -40,7 +40,7 @@ class Utils {
      *
      * @return SD卡路径
      */
-    private static String sdCardPath() {
+    static String sdCardPath() {
         File sdDir = null;
         if (sdCardExist()) {
             sdDir = Environment.getExternalStorageDirectory();//获取跟目录
