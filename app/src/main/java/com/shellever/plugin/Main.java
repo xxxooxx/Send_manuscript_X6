@@ -3,7 +3,6 @@ package com.shellever.plugin;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-
 import static com.shellever.plugin.Utils.*;
 
 
@@ -24,6 +23,22 @@ class Main {
     private String jiangedate;  //发稿间隔时间
     private String kaiguan;  //发稿间隔时间
     private String randomState;  //随机发稿状态
+    private String tsstate;  //随机发稿状态
+   //积分用到的变量
+    private String qdtime;  //签到时间
+    private int jf;      //积分
+    private String jfname;   //积分别名
+    private int zzk;     //转账卡
+    private int zzkjg;     //转账卡价格
+    private String yyt;     //语音条计数
+    private String yyttime;     //语音条计数
+    private String fy;      //发言计数  用于计算今天的龙王
+    private String fytime;  //发言时间
+    private int qdjl;    //签到奖励
+    private int dgjl;    //读稿奖励
+    private String da;     //语音条计数
+    private String cjl;     //语音条计数
+
     private static final Integer ONE = 1;
     private static Random rand = new Random();
     /**
@@ -47,7 +62,20 @@ class Main {
         this.kaiguan = getString(ROOT+"奶御小助手/配置/"+groupID,"state");
         this.randomState = getString(ROOT+"奶御小助手/配置/"+groupID,"randomState");
         this.zr = getString(sdCardPath() + "/Clousx6/sd1/cookie/QQ","QQ");
-
+        this.tsstate = getString(ROOT+"奶御小助手/配置/"+groupID,"tsstate");
+        this.qdtime = getString(ROOT + "奶御小助手/配置/奶御积分助手/签到日期"+qq,"day");
+        this.jf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq,"jf");
+        this.jfname = getString(ROOT + "奶御小助手/配置/奶御积分助手/config","jfname");
+        this.zzk = getInt(ROOT + "奶御小助手/配置/奶御积分助手/背包/"+qq,"zzk");
+        this.yyt = getString(ROOT + "奶御小助手/配置/奶御积分助手/语音条记录/"+qq,"yyt");
+        this.yyttime = getString(ROOT + "奶御小助手/配置/奶御积分助手/签到日期"+qq,"yyttime");
+        this.fytime = getString(ROOT + "奶御小助手/配置/奶御积分助手/签到日期","fytime");
+        this.fy = getString(ROOT + "奶御小助手/配置/奶御积分助手/发言/"+qq,"fy");
+        this.qdjl = getInt(ROOT + "奶御小助手/配置/奶御积分助手/奖励","qdjl");
+        this.dgjl = getInt(ROOT + "奶御小助手/配置/奶御积分助手/奖励","dgjl");
+        this.zzkjg = getInt(ROOT + "奶御小助手/配置/奶御积分助手/奖励","zzkjg");
+        this.da= getString(ROOT + "奶御小助手/配置/奶御积分助手/奖励","da");
+        this.cjl= getString(ROOT + "奶御小助手/配置/奶御积分助手/奖励","cjl");
     }
 
     /**
@@ -85,6 +113,152 @@ class Main {
  *              [0-9A-Za-z]表示任意一个数字或字母
  */
     void processMsg() {
+        //判断猜谜答案
+        if(msg.equals(da)){
+            jf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf");
+            int jl = jf+getInt(ROOT + "奶御小助手/配置/奶御积分助手/奖励","cjl");
+            set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf", jl );
+            send.s("奶御恭喜："+nick+"第一个猜中\\r奖励"+jfname+":"+getInt(ROOT + "奶御小助手/配置/奶御积分助手/奖励","cjl")+"\\r您的"+jfname+"余额："+getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf"));
+            set(ROOT + "奶御小助手/配置/奶御积分助手/奖励","da",getRandomInt(456,789));
+        }
+        //设置猜谜奖励
+        if(msg.matches("猜谜奖励 .+") && qq==1977791013){
+            set(ROOT + "奶御小助手/配置/奶御积分助手/奖励","cjl",msg.split(" ")[1]);
+            send.s("奶御小提示：猜谜奖励"+msg.split(" ")[1]);
+        }
+        //设置答案
+        if(msg.matches("答案 .+") && qq==1977791013){
+            set(ROOT + "奶御小助手/配置/奶御积分助手/奖励","da",msg.split(" ")[1]);
+            send.s("设置答案为："+msg.split(" ")[1]);
+        }
+        //设置积分名
+        if (msg.matches("积分名 .+")  ) {
+            if(iffgadmin(zr,qq)) {
+
+                set(ROOT + "奶御小助手/配置/奶御积分助手/config","jfname",msg.split(" ")[1]);
+                send.s("奶御小提示：积分名设置为:"+msg.split(" ")[1]);
+            }else{
+                send.s("奶御小提示：你不是我主人哟");
+            }
+        }
+        //设置签到奖励
+        if (msg.matches("查询")  ) {
+            send.s(jfname+":"+jf+"\\r转账卡："+zzk);
+        }
+
+        if(msg.matches("抽奖 .+")){
+            Integer.parseInt(msg);
+            int cjjf = Integer.parseInt(msg.split(" ")[1]);
+            jf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf");
+
+            if(!(cjjf <=0) && !(cjjf >20)){
+                if(jf>=cjjf){
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",  jf-cjjf);
+                    int zjjf = getRandomInt(-1,cjjf*2);
+                    int zzjf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf")+zjjf;
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",  zzjf);
+                    send.s("您用："+cjjf+jfname+"\\r抽中了:"+zjjf+jfname+"\\r您的"+jfname+"余额："+zzjf);
+                }else send.s("您"+jfname+"不足"+cjjf);
+            }else send.s("抽奖积分不能是负数或者0或者大于20积分");
+
+
+
+        }
+
+        //设置签到奖励
+        if (msg.matches("签到奖励 .+")  ) {
+            if(iffgadmin(zr,qq)) {
+
+                set(ROOT + "奶御小助手/配置/奶御积分助手/奖励","qdjl",msg.split(" ")[1]);
+                send.s("奶御小提示：签到奖励"+msg.split(" ")[1]+jfname);
+            }else{
+                send.s("奶御小提示：你不是我主人哟");
+            }
+        }
+
+        //设置转账卡价格
+        if (msg.matches("转账卡价格 .+")  ) {
+            if(iffgadmin(zr,qq)) {
+                set(ROOT + "奶御小助手/配置/奶御积分助手/奖励","zzkjg",msg.split(" ")[1]);
+                send.s("奶御小提示：转账卡售卖"+msg.split(" ")[1]+jfname+"一张");
+            }else{
+                send.s("奶御小提示：你不是我主人哟");
+            }
+        }
+
+
+        if(msg.matches("加@.+") && qq==1977791013){
+            int czjf = Integer.parseInt(msg.split(" ")[1]);
+            jf=jf+czjf;
+            set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+atqq, "jf",  jf);
+            send.s("奶御小提示：充值成功\\r您的"+jfname+"余额:"+jf);
+        }
+
+        if (msg.matches("购买转账卡 .+")){
+            int xyjf = Integer.parseInt(msg.split(" ")[1])*zzkjg;
+            jf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf");
+            if(jf>xyjf){
+                jf=jf-xyjf;
+                zzk=zzk+Integer.parseInt(msg.split(" ")[1]);
+                set(ROOT + "奶御小助手/配置/奶御积分助手/背包/"+qq,"zzk",zzk);
+                set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",jf);
+                send.s("花费"+jfname+":"+xyjf+"\\r您的余额："+getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf")+"\\r成功购买转账卡："+msg.split(" ")[1]+"张");
+            }else {send.s("购买失败\\r需要"+jfname+":"+xyjf+"\\r您的"+jfname+":"+jf);}
+        }
+
+        if(msg.matches("转账@.+")){
+            jf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf");
+            int atjf = getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+atqq, "jf");
+            int zzjf = Integer.parseInt(msg.split(" ")[1]);
+            if (zzjf>0){
+                if(zzk>0){
+                    if(jf>zzjf){
+                        set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+atqq, "jf", atjf + zzjf);
+                        set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",  jf-zzjf);
+                        zzk=zzk-1;
+                        set(ROOT + "奶御小助手/配置/奶御积分助手/背包/"+qq,"zzk",zzk);
+                        send.s("转账成功："+zzjf+jfname+"\\r"+jfname+"余额:"+getInt(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf"));
+                    }else send.s("您"+jfname+"不足"+zzjf);
+                }else send.s("您还没有转账卡，请购买转账卡【购买转账卡 1】");
+            }else send.s("您输入有误，不能是负数");
+        }
+
+        //签到
+        if(msg.matches("签到")){
+            Calendar calendar = Calendar.getInstance();
+            int day = calendar.get(Calendar.DAY_OF_MONTH);
+            if (!qdtime.equals(String.valueOf(day))){
+
+                if(jf==0){
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/签到日期"+qq, "day",day);
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",  qdjl);
+                    send.s("奶御小提示：签到成功\\r"+jfname+":"+getString(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq,"jf"));
+                }else {
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/签到日期"+qq, "day", day);
+                    set(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq, "jf",  jf+qdjl);
+                    send.s("奶御小提示：签到成功\\r"+jfname+":"+getString(ROOT + "奶御小助手/配置/奶御积分助手/积分/"+qq,"jf"));
+                }
+            }else {
+                send.s("奶御小提示：您今天已经签到了哟！");
+            }
+        }
+
+        //调试开关
+        if(tsstate.matches("真")){
+            send.s("你发送了："+msg);
+        }
+
+        if(msg.matches("开启调试")){
+            set(ROOT + "奶御小助手/配置/"+groupID, "tsstate",  "真");
+            send.s("成功设置:开启调试成功");
+        }
+        if(msg.matches("关闭调试")){
+            set(ROOT + "奶御小助手/配置/"+groupID, "tsstate",  "假");
+            send.s("成功设置:关闭调试成功");
+
+        }
+
+        //菜单
 
 
         if(msg.matches("奶御小助手")) {
@@ -93,7 +267,9 @@ class Main {
                     "1.开始发稿\t2.停止发稿\\r" +
                     "3.间隔设置\t4.稿子菜单\\r" +
                     "5.使用协议\t6.设置管理\\r" +
-                    "7.顺序发稿\t8.随机发稿");
+                    "7.顺序发稿\t8.随机发稿\\r" +
+                    "9.积分系统\t10.背包系统\\r" +
+                    "奶御小提示：\\r【非管理员】只能使用【3\t5\t9\t10】");
         }
         if(msg.matches("间隔设置")) {
             send.s("奶御教学课堂：\\r命令：【间隔 1000】\\r注意：有空格，1秒等于1000");
@@ -105,32 +281,31 @@ class Main {
             send.s("奶御教学课堂：\\r命令：【设置发稿管理员@凉生】\\r注意：必须是手动AT");
         }
         //设置管理
-
-            if (msg.matches("设置发稿管理员@.+")  ) {
-
-
-               if(iffgadmin(zr,qq)) {
-
-                   if (FGadmin=="null"){
+        if (msg.matches("设置发稿管理员@.+")  ) {
+            if(iffgadmin(zr,qq)) {
+                if (FGadmin=="null"){
                        set(ROOT + "奶御小助手/配置/"+groupID, "FGadmin",  atqq +",");
                        send.s("成功设置:" + atqq + "为第一个发稿管理员!");
-
-                   }
-                   if (!(FGadmin=="null")) {
+                }
+                if (!(FGadmin=="null")) {
                        set(ROOT + "奶御小助手/配置/"+groupID, "FGadmin", FGadmin + atqq + ",");
                        send.s("成功设置:" + atqq + "为发稿管理员");
-                   }
-               }
+                }
             }
+        }
         //判断是是否时发稿管理员
         if(ifadmin(FGadmin,String.valueOf(qq))) {
             //设置发稿间隔
             if (msg.matches("间隔 .+")) {
 
+
                 String[] jiange = msg.split(" ");
-                send.s("奶御小提示成功设置：" + jiange[1] + "毫秒发稿每条");
-                set(ROOT + "奶御小助手/配置/"+groupID, "jiange", jiange[1]);
-                jiangedate = jiange[1];
+                if(jiange[1].matches("[0-9][0-9][0-9][0-9]")){
+                    send.s("奶御小提示成功设置：" + jiange[1] + "毫秒发稿每条");
+                    set(ROOT + "奶御小助手/配置/"+groupID, "jiange", jiange[1]);
+                    jiangedate = jiange[1];
+                }
+
             }
 
             //随机发稿状态设置
@@ -153,7 +328,7 @@ class Main {
                 send.s("奶御小提示:成功打开发稿开关，现在可以发稿了哦");
                 set(ROOT + "奶御小助手/配置/"+groupID, "state", "开");
             }
-            //菜单
+            //稿子菜单
             if (msg.matches("稿子菜单")) {
                 File file = new File(ROOT + "奶御小助手/发稿菜单");
                 if (file.exists()) {
